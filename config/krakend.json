@@ -13,7 +13,7 @@
         {
           "url_pattern": "/payments",
           "host": ["http://payments_api:5009"],
-          "timeout": "5s"
+          "timeout": "15s"
         }
       ]
     },

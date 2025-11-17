@@ -81,6 +81,7 @@ def add_order(user_id: int, items: list):
                         'payment_link': new_order.payment_link,
                         'order_items': items,
                         'datetime': str(datetime.now())}
+        logger.debug(f"Order created event data: {event_data}")
         return order_id
 
     except Exception as e:
