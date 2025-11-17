@@ -23,32 +23,32 @@ class StockDecreasedHandler(EventHandler):
         """Get event type name"""
         return "StockDecreased" # Notez le suffixe _Monolithic pour éviter les conflits avec l'implémentation event-driven.
     
-def handle(self, event_data: Dict[str, Any]) -> None:
-    """Execute every time the event is published"""
-    session = get_sqlalchemy_session()
-    try:
-        # 1. On enregistre la demande de paiement dans la table Outbox
-        new_outbox_item = Outbox(
-            order_id=event_data['order_id'],
-            user_id=event_data['user_id'],
-            total_amount=event_data['total_amount'],
-            order_items=event_data['order_items']
-        )
+    def handle(self, event_data: Dict[str, Any]) -> None:
+        """Execute every time the event is published"""
+        session = get_sqlalchemy_session()
+        try:
+            # 1. On enregistre la demande de paiement dans la table Outbox
+            new_outbox_item = Outbox(
+                order_id=event_data['order_id'],
+                user_id=event_data['user_id'],
+                total_amount=event_data['total_amount'],
+                order_items=event_data['order_items']
+            )
 
-        session.add(new_outbox_item)
-        session.flush()
-        session.commit()
+            session.add(new_outbox_item)
+            session.flush()
+            session.commit()
 
-        # 2. On exécute le processeur Outbox (synchrone)
-        OutboxProcessor().run(new_outbox_item)
+            # 2. On exécute le processeur Outbox (synchrone)
+            OutboxProcessor().run(new_outbox_item)
 
-    except Exception as e:
-        session.rollback()
-        self.logger.debug("La création d'une transaction de paiement a échoué : " + str(e))
+        except Exception as e:
+            session.rollback()
+            self.logger.debug("La création d'une transaction de paiement a échoué : " + str(e))
 
-        event_data['event'] = "PaymentCreationFailed"
-        event_data['error'] = str(e)
-        OrderEventProducer().get_instance().send(config.KAFKA_TOPIC, value=event_data)
+            event_data['event'] = "PaymentCreationFailed"
+            event_data['error'] = str(e)
+            OrderEventProducer().get_instance().send(config.KAFKA_TOPIC, value=event_data)
 
-    finally:
-        session.close()
+        finally:
+            session.close()
